@@ -1,0 +1,102 @@
+#pragma once
+
+#include <cstdint>
+#include <type_traits>
+#include <algorithm>
+
+namespace archduke {
+ //The JVM spec only deals with groups of bytes in these size increments
+ template<auto N>
+ concept is_valid_usize = N == 1 || N == 2 || N == 4;
+
+ /*Convenience data type for converting to/from unsigned integral types and
+  *uint8_t arrays
+  */
+ template<auto N = 1>
+ requires is_valid_usize<N>
+ struct u {
+  using size_type = std::remove_cv_t<decltype(N)>;
+
+  uint8_t v[N] {0};
+
+  //Trivially constructible/destructible
+  constexpr u() noexcept = default;
+  constexpr ~u() noexcept = default;
+
+  //Trivially copy/move-constructible/assignable
+  constexpr u(u const&) noexcept = default;
+  constexpr u(u&&) noexcept = default;
+  constexpr u& operator=(u const&) noexcept = default;
+  constexpr u& operator=(u&&) noexcept = default;
+
+  /*Implicitly constructible/assignable from any unsigned integral type
+   *`sizeof(T) in [1,2,4]`
+   */
+  template<typename T>
+  requires (std::is_unsigned_v<T> && is_valid_usize<sizeof(T)>)
+  constexpr u(T const value) noexcept {
+   mut().operator=(value);
+  }
+
+  template<typename T>
+  requires (std::is_unsigned_v<T> && is_valid_usize<sizeof(T)>)
+  constexpr u& operator=(T const value) noexcept {
+   from_uint(value);
+   return *this;
+  }
+
+  //Zeros the entire value
+  constexpr void zero() noexcept {
+   for (size_type i = 0; i < N; i++) {
+    v[i] = 0;
+   }
+  }
+
+  //Returns the byte array as an unsigned integral type
+  constexpr auto to_uint() noexcept {
+   if constexpr (N == 1) {
+    return v[0];
+   } else if constexpr (N == 2) {
+     uint16_t s = 0;
+     s |= v[0] << 8;
+     s |= v[1];
+     return s;
+   } else if constexpr (N == 4) {
+     uint32_t i = 0;
+     i |= v[3] << 24;
+     i |= v[2] << 16;
+     i |= v[1] << 8;
+     i |= v[0];
+     return i;
+   }
+  }
+
+  //Sets the byte array to the value of an unsigned integral type
+  constexpr void from_uint(auto const uint) noexcept
+  requires (std::is_unsigned_v<std::remove_cv_t<decltype(uint)>>)
+  {
+   for (size_type i = 0; i < std::min((std::size_t)N, sizeof(uint)); i++) {
+    v[i] = uint << (i * 8);
+   }
+  }
+
+  constexpr uint8_t& operator[](size_type const index) noexcept {
+   return v[index];
+  }
+
+  constexpr uint8_t operator[](size_type const index) const noexcept {
+   return v[index];
+  }
+
+  constexpr u& mut() const noexcept {
+   return const_cast<u&>(*this);
+  }
+ };
+
+ //Convenience aliases
+ using u1 = u<>;
+ using u2 = u<2>;
+ using u4 = u<4>;
+}
+
+// vim: syntax=cpp filetype=cpp:

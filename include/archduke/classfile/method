@@ -1,0 +1,18 @@
+#pragma once
+
+#include <archduke/types>
+#include <archduke/classfile/attribute>
+
+namespace archduke::classfile::method {
+ //4.6: method_info
+ struct method_info {
+  u2
+   access_flags,
+   name_index,
+   descriptor_index,
+   attributes_count;
+  attribute::attribute_info * attributes;
+ };
+}
+
+// vim: syntax=cpp filetype=cpp:

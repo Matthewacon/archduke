@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.19)
 set(ENV{CMAKE_EXPORT_COMPILE_COMMANDS} ON)
 
 project(
- arch-duke 
+ archduke
  VERSION 1.0.0
  LANGUAGES CXX
  DESCRIPTION "0xCAFEBABE"
@@ -25,7 +25,7 @@ endif()
 file(GLOB_RECURSE ARCH_DUKE_SOURCES "src/*.cpp" "src/**/*.cpp")
 
 #Build executable
-add_executable(arch-duke)
-target_sources(arch-duke PUBLIC ${ARCH_DUKE_SOURCES})
-target_include_directories(arch-duke PUBLIC include)
-set_target_properties(arch-duke PROPERTIES LINKER_LANGUAGE CXX)
+add_executable(archduke)
+target_sources(archduke PUBLIC ${ARCH_DUKE_SOURCES})
+target_include_directories(archduke PUBLIC include)
+set_target_properties(archduke PROPERTIES LINKER_LANGUAGE CXX)

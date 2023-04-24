@@ -1,0 +1,129 @@
+#pragma once
+
+#include <archduke/types>
+
+//Type definitions for jvms-4.4
+namespace archduke::classfile::tag {
+ //4.4: cp_info
+ struct cp_info {
+  u1 tag;
+
+  constexpr cp_info() noexcept = default;
+  virtual constexpr ~cp_info() noexcept = default;
+ };
+
+ //4.4.1: CONSTANT_Class_info
+ struct class_info : cp_info {
+  static constexpr u1 const tag = 7U;
+
+  u2 name_index;
+ };
+
+ //4.4.2: CONSTANT_Fieldref_info
+ struct field_ref_info : cp_info {
+  static constexpr u1 const tag = 9U;
+
+  u2 class_index;
+  u2 name_and_type_index;
+ };
+
+ //4.4.2: CONSTANT_Methodref_info
+ struct method_ref_info : field_ref_info {
+  static constexpr u1 const tag = 10U;
+ };
+
+ //4.4.2: CONSTANT_InterfaceMethodref_info
+ struct interface_method_ref_info : field_ref_info {
+  static constexpr u1 const tag = 11U;
+ };
+
+ //4.4.3: CONSTANT_String_info
+ struct string_info : cp_info {
+  static constexpr u1 const tag = 8U;
+
+  u2 string_index;
+ };
+
+ //4.4.4: CONSTANT_Integer_info
+ struct integer_info : cp_info {
+  static constexpr u1 const tag = 3U;
+
+  u4 bytes;
+ };
+
+ //4.4.4: CONSTANT_Float_info
+ struct float_info : integer_info {
+  static constexpr u1 const tag = 4U;
+ };
+
+ //4.4.5: CONSTANT_Long_info
+ struct long_info : cp_info {
+  static constexpr u1 const tag = 5U;
+
+  u4 high_bytes, low_bytes;
+ };
+
+ //4.4.5: CONSTANT_Double_info
+ struct double_info : long_info {
+  static constexpr u1 const tag = 6U;
+ };
+
+ //4.4.6: CONSTANT_NameAndType_info
+ struct name_and_type_info : cp_info {
+  static constexpr u1 const tag = 12U;
+
+  u2 name_index, descriptor_index;
+ };
+
+ //4.4.7: CONSTANT_Utf8_info
+ struct utf8_info : cp_info {
+  static constexpr u1 const tag = 1U;
+
+  u2 length;
+  u1 * bytes;
+ };
+
+ //4.4.8: CONSTANT_MethodHandle_info
+ struct method_handle_info : cp_info {
+  static constexpr u1 const tag = 15U;
+
+  u1 reference_kind;
+  u2 reference_index;
+ };
+
+ //4.4.9: CONSTANT_MethodType_info
+ struct method_type_info : cp_info {
+  static constexpr u1 const tag = 16U;
+
+  u2 descriptor_index;
+ };
+
+ //4.4.10: CONSTANT_Dynamic_info
+ struct dynamic_info : cp_info {
+  static constexpr u1 const tag = 17U;
+
+  u2 bootstrap_method_attr_index;
+  u2 name_and_type_index;
+ };
+
+ //4.4.10: CONSTANT_InvokeDynamic_info
+ struct invoke_dynamic_info : dynamic_info {
+  static constexpr u1 const tag = 18U;
+ };
+
+ //4.4.11: CONSTANT_Module_info
+ struct module_info : cp_info {
+  static constexpr u1 const tag = 19U;
+
+  u2 name_index;
+ };
+
+ //4.4.12: CONSTANT_Package_info
+ struct package_info : cp_info {
+  static constexpr u1 const tag = 20U;
+
+  u2 name_index;
+ };
+}
+
+// vim: syntax=cpp filetype=cpp:

@@ -1,0 +1,40 @@
+#pragma once
+
+#include <archduke/types>
+#include <archduke/classfile/tag>
+#include <archduke/classfile/attribute>
+#include <archduke/classfile/field>
+#include <archduke/classfile/method>
+
+/**
+ *All definitions based on the JVM SE 20 specification:
+ *https://docs.oracle.com/javase/specs/jvms/se20/html/jvms-4.html#jvms-4.4.1
+ */
+namespace archduke::classfile {
+ //4.1: ClassFile
+ struct class_file {
+  constexpr class_file() noexcept = default;
+  virtual constexpr ~class_file() noexcept = default;
+
+  u4 magic;
+  u2
+   minor_version,
+   major_version;
+  u2 constant_pool_count;
+  tag::cp_info * constant_pool;
+  u2
+   access_flags,
+   this_class,
+   super_class,
+   interfaces_count;
+  u2 * interfaces;
+  u2 fields_count;
+  field::field_info * fields;
+  u2 methods_count;
+  method::method_info * methods;
+  u2 attributes_count;
+  attribute::attribute_info * attributes;
+ };
+}
+
+// vim: syntax=cpp filetype=cpp:

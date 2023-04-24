@@ -1,0 +1,615 @@
+#pragma once
+
+#include <archduke/types>
+
+//Type definitions for jvms-4.7
+namespace archduke::classfile::attribute {
+ //4.7: attribute_info
+ struct attribute_info {
+  u2 attribute_name_index;
+  u4 attribute_length;
+
+  virtual constexpr ~attribute_info() noexcept = default;
+ };
+
+ //4.7.2: ConstantValue_attribute
+ struct constant_value : attribute_info {
+  static constexpr char const name[] = "ConstantValue";
+
+  u2 constantvalue_index;
+ };
+
+ //4.7.3: Code_attribute
+ struct code : attribute_info {
+  struct exception_table_entry {
+   u2
+    start_pc,
+    end_pc,
+    handler_pc,
+    catch_type;
+  };
+
+  static constexpr char const name[] = "Code";
+
+  u2
+   max_stack,
+   max_locals;
+  u4 code_length;
+  u1 * code;
+  u2 excaption_table_length;
+  exception_table_entry * exception_table;
+  u2 attribute_count;
+  attribute_info * attributes;
+ };
+
+ //4.7.4: StackMapTable_attribute
+ struct stack_map_table : attribute_info {
+  /**
+   *Make-shift enum for discriminating the entries in the
+   *`verification_type_info` union
+   */
+  struct verification_type final {
+   static constexpr u1
+    TOP_VARIABLE_INFO     = 0U,
+    INTEGER_VARIABLE_INFO = 1U,
+    FLOAT_VARIABLE_INFO   = 2U,
+    DOUBLE_VARIABLE_INFO  = 3U,
+    LONG_VARIABLE_INFO    = 4U,
+    NULL_VARIABLE_INFO    = 5U,
+    UNINITIALIZED_THIS_VARIABLE_INFO = 6U,
+    OBJECT_VARIABLE_INFO             = 7U,
+    UNINITIALIZED_VARIABLE_INFO      = 8U;
+
+   constexpr verification_type() noexcept = delete;
+  };
+
+  //Base for all variable_info verification types
+  struct variable_info_base {
+   virtual constexpr ~variable_info_base() noexcept = default;
+  };
+
+  //Top_variable_info
+  struct top_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::TOP_VARIABLE_INFO;
+  };
+
+  //Integer_variable_info
+  struct integer_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::INTEGER_VARIABLE_INFO;
+  };
+
+  //Float_variable_info
+  struct float_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::FLOAT_VARIABLE_INFO;
+  };
+
+  //Double_variable_info
+  struct double_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::DOUBLE_VARIABLE_INFO;
+  };
+
+  //Long_variable_info
+  struct long_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::LONG_VARIABLE_INFO;
+  };
+
+  //Null_variable_info
+  struct null_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::NULL_VARIABLE_INFO;
+  };
+
+  //UninitializedThis_variable_info
+  struct uninitialized_this_variable_info : variable_info_base {
+   static constexpr auto tag =
+    verification_type::UNINITIALIZED_THIS_VARIABLE_INFO;
+  };
+
+  //Object_variable_info
+  struct object_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::OBJECT_VARIABLE_INFO;
+
+   u2 cpool_index;
+  };
+
+  //Uninitialized_variable_info
+  struct uninitialized_variable_info : variable_info_base {
+   static constexpr auto tag = verification_type::UNINITIALIZED_VARIABLE_INFO;
+
+   u2 offset;
+  };
+
+  //verification_type_info
+  union verification_type_info {
+   top_variable_info top_vi;
+   integer_variable_info int_vi;
+   float_variable_info float_vi;
+   double_variable_info double_vi;
+   long_variable_info long_vi;
+   null_variable_info null_vi;
+   uninitialized_this_variable_info uninitialized_this_vi;
+   object_variable_info object_vi;
+   uninitialized_variable_info uninitialized_vi;
+
+   //TODO: ctor/dtor, parse, serialize
+  };
+
+  //same_frame: frame_type within range [0, 63]
+  struct same_frame {
+   u1 frame_type;
+  };
+
+  //same_locals_1_stack_item_frame: frame_type within range [64, 127]
+  struct same_locals_1_stack_item_frame {
+   u1 frame_type;
+   verification_type_info stack;
+  };
+
+  //same_locals_1_stack_item_frame_extended: frame_type = 247
+  struct same_locals_1_stack_item_frame_extended {
+   u1 frame_type;
+   u2 offset_delta;
+   verification_type_info stack;
+  };
+
+  /**
+   *chop_frame: frame_type within range [248, 250]
+   *
+   *Note: same as previous frame except that the last `k` elements, where
+   `k = 251 - frame_type` are absent and the operand stack is empty
+   */
+  struct chop_frame {
+   u1 frame_type;
+   u2 offset_delta;
+  };
+
+  //same_frame_extended: frame_type = 251
+  struct same_frame_extended {
+   u1 frame_type;
+   u2 offset_delta;
+  };
+
+  //append_frame: frame_type within range [252, 254]
+  struct append_frame {
+   u1 frame_type;
+   u2 offset_delta;
+   verification_type_info * locals;
+  };
+
+  //full_frame: frame_type = 255
+  struct full_frame {
+   u1 frame_type;
+   u2
+    offset_delta,
+    number_of_locals;
+   verification_type_info * locals;
+   u2 number_of_stack_items;
+   verification_type_info * stack;
+  };
+
+  //stack_map_frame
+  union stack_map_frame {
+   same_frame f1;
+   same_locals_1_stack_item_frame f2;
+   same_locals_1_stack_item_frame_extended f3;
+   chop_frame f4;
+   same_frame_extended f5;
+   append_frame f6;
+   full_frame f7;
+
+   //TODO: ctor/dtor, parse, serialize
+  };
+
+  u2 number_of_entries;
+  stack_map_frame * entries;
+ };
+
+ //4.7.5 Exceptions_attribute
+ struct exceptions_attribute : attribute_info {
+  u2 number_of_exceptions;
+  u2 * exception_index_table;
+ };
+
+ //4.7.6: InnerClass_attribute
+ struct inner_classes_attribute : attribute_info {
+  struct inner_class_table_entry {
+   u2
+    inner_class_info_index,
+    outer_class_info_index,
+    inner_name_index,
+    inner_class_access_flags;
+  };
+
+  u2 number_of_classes;
+  inner_class_table_entry * classes;
+ };
+
+ //4.7.7: EnclosingMethod_attribute
+ struct enclosing_method_attribute : attribute_info {
+  u2 class_index;
+  u2 method_index;
+ };
+
+ //4.7.8: Synthetic_attribute
+ struct synthetic_attribute : attribute_info {};
+
+ //4.7.9: Signature_attribute
+ struct signature_attribute : attribute_info {
+  u2 signature_index;
+ };
+
+ //4.7.10: SourceFile_attribute
+ struct source_file_attribute : attribute_info {
+  u2 sourcefile_index;
+ };
+
+ //4.7.11: SourceDebugExtension_attribute
+ struct source_debug_extension_attribute : attribute_info {
+  u1 * debug_extension;
+ };
+
+ //4.7.12: LineNumberTable_attribute
+ struct line_number_table_attribute : attribute_info {
+  struct line_number_table_entry {
+   u2
+    start_pc,
+    line_number;
+  };
+
+  u2 line_number_table_length;
+  line_number_table_entry * line_number_table;
+ };
+
+ //4.7.13: LocalVariableTable_attribute
+ struct local_variable_table_attribute : attribute_info {
+  struct local_variable_table_entry {
+   u2
+    start_pc,
+    length,
+    name_index,
+    descriptor_index,
+    index;
+  };
+
+  u2 local_variable_table_length;
+  local_variable_table_entry * local_variable_table;
+ };
+
+ //4.7.14 LocalVariableTypeTable_attribute
+ struct local_variable_type_table_attribute : attribute_info {
+  struct local_variable_type_table_entry {
+   u2
+    start_pc,
+    length,
+    name_index,
+    signature_index,
+    index;
+  };
+
+  u2 local_variable_type_table_length;
+  local_variable_type_table_entry * local_variable_type_table;
+ };
+
+ //4.7.15: Deprecated_attribute
+ struct deprecated_attribute : attribute_info {
+  u2 attribute_name_index;
+  u4 attribute_length;
+ };
+
+ //4.7.16: RuntimeVisibleAnnotations_attribute
+ struct runtime_visible_annotations_attribute : attribute_info {
+  //Note: Forward declared becasue this attribute is self-nesting...
+  struct annotation_table_entry;
+  struct annotation_element_pair_value;
+
+  //4.7.16.1: element_value
+  struct annotation_element_pair_value {
+   u1 tag;
+   union {
+    u2 const_value_index;
+    struct {
+     u2
+      type_name_index,
+      const_name_index;
+    } enum_const_value;
+    u2 class_info_index;
+    annotation_table_entry * annotation_value;
+    struct {
+     u2 num_values;
+     annotation_element_pair_value * values;
+    } array_value;
+   } value;
+  };
+
+  struct annotation_element_pair_table_entry {
+   u2 element_name_index;
+   annotation_element_pair_value value;
+  };
+
+  struct annotation_table_entry {
+   u2
+    type_index,
+    num_element_value_pairs;
+   annotation_element_pair_table_entry * element_value_pairs;
+  };
+
+  u2 num_annotations;
+  annotation_table_entry * annotations;
+ };
+
+ //4.7.17: RuntimeInvisibleAnnotations_attribute
+ struct runtime_invisible_annotations_attribute : attribute_info {
+  using annotation_table_entry =
+   runtime_visible_annotations_attribute::annotation_table_entry;
+
+  u2 num_annotations;
+  annotation_table_entry * annotations;
+ };
+
+ //4.7.18: RuntimeVisibleParameterAnnotations_attribute
+ struct runtime_visible_parameter_annotations_attribute : attribute_info {
+  using annotation_table_entry =
+   runtime_visible_annotations_attribute::annotation_table_entry;
+
+  struct parameter_annotation_table_entry {
+   u2 num_annotations;
+   annotation_table_entry * annotations;
+  };
+
+  u1 num_parameters;
+  parameter_annotation_table_entry * parameter_annotations;
+ };
+
+ //4.7.19: RuntimeInvisibleParameterAnnotations_attribute
+ struct runtime_invisible_parameter_annotations_attribute : attribute_info {
+  using annotation_table_entry =
+   runtime_visible_annotations_attribute::annotation_table_entry;
+  using parameter_annotation_table_entry =
+   runtime_visible_parameter_annotations_attribute
+    ::parameter_annotation_table_entry;
+
+  u1 num_parameters;
+  parameter_annotation_table_entry * parameter_annotations;
+ };
+
+ //4.7.20: RuntimeVisibleTypeAnnotations_attribute
+ struct runtime_visible_type_annotations_attribute : attribute_info {
+  using annotation_element_pair_value =
+   runtime_visible_annotations_attribute::annotation_element_pair_value;
+  using annotation_table_entry =
+   runtime_visible_annotations_attribute::annotation_table_entry;
+
+  //4.7.20.1: target_info union types
+
+  //type_parameter_target
+  struct type_parameter_target {
+   u1 type_parameter_index;
+  };
+
+  //supertype_target
+  struct super_type_target {
+   //supertype_index
+   u2 super_type_index;
+  };
+
+  //type_parameter_bound_target
+  struct type_parameter_bound_target {
+   u1 type_parameter_index;
+   u1 bound_target;
+  };
+
+  //empty_target
+  struct empty_target {};
+
+  //formal_parameter_target
+  struct formal_parameter_target {
+   u1 formal_parameter_index;
+  };
+
+  //throws_target
+  struct throws_target {
+   u2 throws_type_index;
+  };
+
+  //localvar_target
+  struct local_var_target {
+   struct local_var_target_table_entry {
+    u2
+     start_pc,
+     length,
+     index;
+   };
+
+   u2 table_length;
+   local_var_target_table_entry * table;
+  };
+
+  //catch_target
+  struct catch_target {
+   u2 exception_table_index;
+  };
+
+  //offset_target
+  struct offset_target {
+   u2 offset;
+  };
+
+  //type_argument_target
+  struct type_argument_target {
+   u2 offset;
+   u1 type_argument_index;
+  };
+
+  //target_path
+  struct target_path {
+   //type_path
+   struct type_path {
+    u1 type_path_kind;
+    u1 type_argument_index;
+   };
+
+   u1 path_length;
+   type_path * path;
+  };
+
+  //type_annotation
+  struct type_annotation_table_entry {
+   struct target_info_type {
+    type_parameter_target t1;
+    super_type_target t2;
+    type_parameter_bound_target t3;
+    empty_target t4;
+    formal_parameter_target t5;
+    throws_target t6;
+    local_var_target t7;
+    catch_target t8;
+    offset_target t9;
+    type_argument_target t10;
+
+    //TODO: ctor/dtor, parse, serialize
+   };
+
+   u1 target_type;
+   target_info_type target_info;
+   target_path * target_path;
+   u2 type_index;
+   u2 num_element_value_pairs;
+   annotation_element_pair_value * element_value_pairs;
+  };
+
+  u2 num_annotations;
+  type_annotation_table_entry * annotations;
+ };
+
+ //4.7.21: RuntimeInvisibleTypeAnnotations_attribute
+ struct runtime_invisible_type_annotations_attribute : attribute_info {
+  using annotation_element_pair_value =
+   runtime_visible_annotations_attribute::annotation_element_pair_value;
+  using annotation_table_entry =
+   runtime_visible_annotations_attribute::annotation_table_entry;
+  using type_annotation_table_entry =
+   runtime_visible_type_annotations_attribute::type_annotation_table_entry;
+
+  u2 num_annotations;
+  type_annotation_table_entry * annotations;
+ };
+
+ //4.7.22: AnnotationDefault_attribute
+ struct annotation_default_attribute : attribute_info {
+  using annotation_element_pair_value =
+   runtime_visible_annotations_attribute::annotation_element_pair_value;
+
+  annotation_element_pair_value default_value;
+ };
+
+ //4.7.23: BootstrapMethods_attribute
+ struct bootstrap_methods_attribute : attribute_info {
+  struct bootstrap_methods_table_entry {
+   u2
+    bootstrap_method_ref,
+    num_bootstrap_arguments;
+   u2 * bootstrap_arguments;
+  };
+
+  u2 num_bootstrap_methods;
+  bootstrap_methods_table_entry * bootstrap_methods;
+ };
+
+ //4.7.24: MethodParameters_attribute
+ struct method_parameters_attribute : attribute_info {
+  struct parameters_table_entry {
+   u2
+    name_index,
+    access_flags;
+  };
+
+  u1 parameters_count;
+  parameters_table_entry * parameters;
+ };
+
+ //4.7.25: Module_attribute
+ struct module_attribute : attribute_info {
+  struct requires_table_entry {
+   u2
+    requires_index,
+    requires_flags,
+    requires_version_index;
+  };
+
+  struct exports_table_entry {
+   u2
+    exports_index,
+    exports_flags,
+    exports_to_count;
+   u2 * exports_to_index;
+  };
+
+  struct provides_table_entry {
+   u2
+    provides_index,
+    provides_with_count;
+   u2 * provides_with_index;
+  };
+
+  u2
+   module_name_index,
+   module_flags,
+   module_version_index;
+
+  //requires
+  u2 requires_count;
+  requires_table_entry * requires_table;
+  //exports
+  u2 exports_count;
+  exports_table_entry * exports_table;
+  //uses
+  u2 uses_count;
+  u2 * uses_index;
+  //provides
+  u2 provides_count;
+  provides_table_entry * provides;
+ };
+
+ //4.7.26: ModulePackages_attribute
+ struct module_packages_attribute : attribute_info {
+  u2 package_count;
+  u2 * package_index;
+ };
+
+ //4.7.27: ModuleMainClass_attribute
+ struct module_main_class_attribute : attribute_info {
+  u4 main_class_index;
+ };
+
+ //4.7.28: NestHost_attribute
+ struct nest_host_attribute : attribute_info {
+  u2 host_class_index;
+ };
+
+ //4.7.29: NestMembers_attribute
+ struct nest_members_attribute : attribute_info {
+  u2 number_of_classes;
+  u2 * classes;
+ };
+
+ //4.7.30: Record_attribute
+ struct record_attribute : attribute_info {
+  struct record_component_info {
+   u2
+    name_index,
+    descriptor_index,
+    attributes_count;
+   attribute_info * attributes;
+  };
+
+  u2 components_count;
+  record_component_info * components;
+ };
+
+ //4.7.31: PermittedSubclasses_attribute
+ struct permitted_subclasses_attribute : attribute_info {
+  u2 number_of_classes;
+  u2 * classes;
+ };
+}
+
+// vim: syntax=cpp filetype=cpp:
